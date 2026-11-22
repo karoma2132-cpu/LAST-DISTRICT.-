@@ -1,0 +1,44 @@
+
+name: Build LAST DISTRICT APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    container:
+      image: barichello/godot-ci:4.3
+
+    steps:
+      - name: Download project files
+        uses: actions/checkout@v4
+
+      - name: Extract game ZIP
+        run: |
+          mkdir -p game build
+          ARCHIVE="$(find . -maxdepth 1 -type f -iname '*.zip' | head -n 1)"
+          if [ -z "$ARCHIVE" ]; then
+            echo "Game ZIP not found!"
+            exit 1
+          fi
+          unzip -q "$ARCHIVE" -d game
+
+      - name: Prepare Godot
+        run: |
+          mkdir -p /root/.local/share/godot/export_templates
+          mkdir -p /root/.config
+          godot --headless --path game --editor --quit
+
+      - name: Build Android APK
+        run: |
+          godot --headless --path game --export-debug "Android" build/last_district_debug.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: LAST-DISTRICT-APK
+          path: build/last_district_debug.apk
+          
